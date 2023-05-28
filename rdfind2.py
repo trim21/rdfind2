@@ -94,7 +94,8 @@ class Entry:
     nargs=-1,
     type=click.Path(exists=True, file_okay=False, readable=True, resolve_path=True),
 )
-@click.option("--make-hardlink", "hardlink", is_flag=True, default=False,help='used when you search duplicate files in same device')
+@click.option("--make-hardlink", "hardlink", is_flag=True, default=False,
+              help='used when you search duplicate files in same device')
 @click.option("--delete", "delete", is_flag=True, default=False)
 def rdfind2(location: Tuple[str], hardlink=False, delete=False):
     if hardlink and delete:
@@ -111,9 +112,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 
         entry_groups.append(headGroups)
 
-    total = len(entry_groups)
-    for i, entry_group in enumerate(entry_groups):
-        click.secho(f"{i + 1}/{total}", fg="green")
+    for entry_group in tqdm.tqdm(entry_groups):
         entry_grouped = compare_groups(entry_group)
         for g in entry_grouped:
             if len(g) == 1:

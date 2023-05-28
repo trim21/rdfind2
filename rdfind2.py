@@ -14,6 +14,7 @@ from tqdm import tqdm
 PROGRESS_SIZE = 128 * 1024 * 1024  # 512M
 CHUNK_SIZE = 16 * 1024  # 16k
 PARTIAL_SIZE = 16
+SMALL_FILE_THRESHOLD = 256 * 1024 * 1024  # 256 mb
 
 
 @dataclasses.dataclass
@@ -100,10 +101,14 @@ class Entry:
 @click.option("--make-hardlink", "hardlink", is_flag=True, default=False,
               help='used when you search duplicate files in same device')
 @click.option("--delete", "delete", is_flag=True, default=False)
-def rdfind2(location: Tuple[str], hardlink=False, delete=False):
+@click.option('--file-size-threshold', 'threshold', default=SMALL_FILE_THRESHOLD, type=int)
+def rdfind2(location: Tuple[str], threshold: int, hardlink=False, delete=False):
     if hardlink and delete:
         click.secho("can't use '--make-hardlink' with '--delete'", fg="green", err=True)
     group_by_size = dedupe_by_size(location)
+
+    if threshold:
+        group_by_size = {key: value for key, value in group_by_size.items() if key >= threshold}
 
     groups: Dict[tuple, List[Entry]] = dedupe_by_head_tail(group_by_size)
 
@@ -160,8 +165,8 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
         print("deleted file size:", format_size(Stat.deleted))
 
 
-def dedupe_by_size(locations: Iterable[str]):
-    group_by_size: Dict[Tuple[int], List[Entry]] = defaultdict(list)
+def dedupe_by_size(locations: Iterable[str]) -> Dict[int, List[Entry]]:
+    group_by_size: Dict[int, List[Entry]] = defaultdict(list)
 
     with tqdm(desc="get all files", ascii=True) as bar:
         for locate in locations:
@@ -172,7 +177,7 @@ def dedupe_by_size(locations: Iterable[str]):
                     p = t.joinpath(file)
                     stat = p.stat()
                     size = stat.st_size
-                    group_by_size[(size,)].append(
+                    group_by_size[size].append(
                         Entry(path=p, size=size, inode=stat.st_ino)
                     )
 

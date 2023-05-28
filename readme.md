@@ -27,5 +27,7 @@ pip install rdfind2
 ## Usage:
 
 ```shell
-rdfind2 [--make-hardlink --delete] ./dir1 ./dir2 ...directory 
+rdfind2 [--file-size-threshold=268435456] [--make-hardlink --delete] ./dir1 ./dir2 ...directory
 ```
+
+(268435456 is 256mb)

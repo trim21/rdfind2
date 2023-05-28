@@ -126,7 +126,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                 tqdm.write("link files:")
 
                 link_src = g.pop()
-                tqdm.write(click.style(f"hard link target file {link_src.path!r}", fg="green"))
+                tqdm.write(click.style(f"hard link target file {link_src.path!s}", fg="green"))
                 for file in g:
                     tqdm.write(click.style(f"{file.path!s}", fg="red"))
 
@@ -134,7 +134,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                     if link_src.inode == file.inode:
                         continue
                     if file.path.name.endswith(".rdfind2.old"):
-                        tqdm.write(click.style(f"find internal temp file {file.path!r}", fg="red"))
+                        tqdm.write(click.style(f"find internal temp file {file.path!s}", fg="red"))
                         continue
                     temp_file_path = pathlib.Path(
                         file.path.with_name(file.path.name + ".rdfind2.old")
@@ -145,7 +145,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 
             elif delete:
                 link_src = g.pop()
-                tqdm.write(click.style(f"find internal temp file {link_src.path}", fg="green"))
+                tqdm.write(click.style(f"keep file {link_src.path}", fg="green"))
                 for file in g:
                     Stat.deleted += file.size
                     tqdm.write(click.style(f"remove file {file.path}", fg="red"))

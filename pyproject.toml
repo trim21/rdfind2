@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rdfind2"
+version = "0.0.1"
 authors = [
     { name = "trim21", email = "trim21.me@gmail.com" },
 ]

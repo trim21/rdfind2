@@ -6,6 +6,12 @@
 
 find duplicated files (in one fs) very fast.
 
+rdfind2 will filter files by size, head, tail and inode.
+
+Only hash full files content when it's necessary.
+
+## Install
+
 with pipx:
 
 ```shell
@@ -18,6 +24,8 @@ with pip:
 pip install rdfind2
 ```
 
-rdfind2 will filter files by size, head, tail and inode.
+## Usage:
 
-Only hash full files content when it's necessary.
+```shell
+rdfind2 [--make-hardlink --delete] ./dir1 ./dir2 ...directory 
+```

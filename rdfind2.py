@@ -10,6 +10,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import click
 from tqdm import tqdm
 
+
 PROGRESS_SIZE = 128 * 1024 * 1024  # 512M
 CHUNK_SIZE = 16 * 1024  # 16k
 PARTIAL_SIZE = 16
@@ -82,7 +83,7 @@ class Entry:
     def read_partial(p: pathlib.Path, size: int) -> Tuple[bytes, bytes, bytes]:
         with p.open("rb", buffering=0) as f:
             head = f.read(PARTIAL_SIZE)
-            f.seek(int(size / 2), io.SEEK_SET)
+            f.seek(size // 2, io.SEEK_SET)
             middle = f.read(PARTIAL_SIZE)
             f.seek(-min(PARTIAL_SIZE, size), io.SEEK_END)
             tail = f.read(PARTIAL_SIZE)
@@ -114,6 +115,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 
         entry_groups.append(headGroups)
 
+    click.secho("check file hashed", fg='cyan')
     for entry_group in tqdm(entry_groups, ascii=True, position=0):
         entry_grouped = compare_groups(entry_group)
         for g in entry_grouped:
@@ -122,16 +124,17 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 
             if hardlink:
                 tqdm.write("link files:")
-                for file in g:
-                    tqdm.write(click.style(f"{file.path!s}", fg="red"))
 
                 link_src = g.pop()
+                tqdm.write(click.style(f"hard link target file {link_src.path!r}", fg="green"))
+                for file in g:
+                    tqdm.write(click.style(f"{file.path!s}", fg="red"))
 
                 for file in g:
                     if link_src.inode == file.inode:
                         continue
                     if file.path.name.endswith(".rdfind2.old"):
-                        tqdm.write(click.style(f"find internal temp file {file.path}", fg="red"))
+                        tqdm.write(click.style(f"find internal temp file {file.path!r}", fg="red"))
                         continue
                     temp_file_path = pathlib.Path(
                         file.path.with_name(file.path.name + ".rdfind2.old")
@@ -141,7 +144,8 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                     temp_file_path.unlink()
 
             elif delete:
-                g.pop()
+                link_src = g.pop()
+                tqdm.write(click.style(f"find internal temp file {link_src.path}", fg="green"))
                 for file in g:
                     Stat.deleted += file.size
                     tqdm.write(click.style(f"remove file {file.path}", fg="red"))
@@ -151,7 +155,9 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                 for entry in sorted(g, key=lambda x: x.path):
                     tqdm.write(str(entry.path))
 
-    print(format_size(Stat.hashed))
+    print("hashed file size:", format_size(Stat.hashed))
+    if delete:
+        print("deleted file size:", format_size(Stat.deleted))
 
 
 def dedupe_by_size(locations: Iterable[str]):
@@ -224,5 +230,3 @@ def format_size(n: int):
 
 if __name__ == "__main__":
     rdfind2()
-    print("hashed file size:", format_size(Stat.hashed))
-    print("deleted file size:", format_size(Stat.deleted))

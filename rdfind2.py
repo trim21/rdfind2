@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import click
-import tqdm
+from tqdm import tqdm
 
 PROGRESS_SIZE = 128 * 1024 * 1024  # 512M
 CHUNK_SIZE = 16 * 1024  # 16k
@@ -61,11 +61,13 @@ class Entry:
     def open(self) -> io.BytesIO:
         if self.size > PROGRESS_SIZE:
             with self.path.open("rb") as f:
-                with tqdm.tqdm.wrapattr(
+                with tqdm.wrapattr(
                         f,
                         "read",
                         total=self.size,
-                        bar_format="{desc}: {percentage:3.0f}% {r_bar}",
+                        ascii=True,
+                        leave=False,
+                        position=1,
                 ) as reader:
                     yield reader
             return
@@ -112,16 +114,16 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 
         entry_groups.append(headGroups)
 
-    for entry_group in tqdm.tqdm(entry_groups):
+    for entry_group in tqdm(entry_groups, ascii=True, position=0):
         entry_grouped = compare_groups(entry_group)
         for g in entry_grouped:
             if len(g) == 1:
                 continue
 
             if hardlink:
-                print("link files:")
+                tqdm.write("link files:")
                 for file in g:
-                    click.secho(f"{file.path!s}", fg="red")
+                    tqdm.write(click.style(f"{file.path!s}", fg="red"))
 
                 link_src = g.pop()
 
@@ -129,7 +131,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                     if link_src.inode == file.inode:
                         continue
                     if file.path.name.endswith(".rdfind2.old"):
-                        click.secho(f"find internal temp file {file.path}", fg="red")
+                        tqdm.write(click.style(f"find internal temp file {file.path}", fg="red"))
                         continue
                     temp_file_path = pathlib.Path(
                         file.path.with_name(file.path.name + ".rdfind2.old")
@@ -142,13 +144,12 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
                 g.pop()
                 for file in g:
                     Stat.deleted += file.size
-                    click.secho(f"remove file {file.path}", fg="red")
+                    tqdm.write(click.style(f"remove file {file.path}", fg="red"))
                     os.unlink(file.path)
             else:
-                print("")
-                print(tqdm.tqdm.format_sizeof(g[0].size, suffix="B", divisor=1024))
+                tqdm.write(tqdm.format_sizeof(g[0].size, suffix="B", divisor=1024))
                 for entry in sorted(g, key=lambda x: x.path):
-                    print(entry.path)
+                    tqdm.write(str(entry.path))
 
     print(format_size(Stat.hashed))
 
@@ -156,7 +157,7 @@ def rdfind2(location: Tuple[str], hardlink=False, delete=False):
 def dedupe_by_size(locations: Iterable[str]):
     group_by_size: Dict[Tuple[int], List[Entry]] = defaultdict(list)
 
-    with tqdm.tqdm(desc="get all files", ascii=True) as bar:
+    with tqdm(desc="get all files", ascii=True) as bar:
         for locate in locations:
             for top, _, files in os.walk(locate):
                 t = pathlib.Path(top).absolute()
@@ -178,7 +179,7 @@ def dedupe_by_head_tail(
     groups: Dict[Tuple[int, bytes, bytes], List[Entry]] = defaultdict(list)
     total = sum(len(x) for x in group_by_size.values())
 
-    with tqdm.tqdm(
+    with tqdm(
             total=total,
             desc="dedupe by file head/tail",
             ascii=True,
@@ -218,7 +219,7 @@ def compare_groups(group: List[Entry]) -> List[List[Entry]]:
 
 
 def format_size(n: int):
-    return tqdm.tqdm.format_sizeof(n, "B", divisor=1024)
+    return tqdm.format_sizeof(n, "B", divisor=1024)
 
 
 if __name__ == "__main__":

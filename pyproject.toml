@@ -18,5 +18,5 @@ python = "^3.9"
 click= "^8"
 tqdm= "^4.65.0"
 
-[project.scripts]
+[tool.poetry.scripts]
 rdfind2 = "rdfind2:rdfind2"

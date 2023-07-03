@@ -30,4 +30,4 @@ pip install rdfind2
 rdfind2 [--file-size-threshold=268435456] [--make-hardlink --delete] ./dir1 ./dir2 ...directory
 ```
 
-(268435456 is 256mb)
+(268435456 is 256MB)

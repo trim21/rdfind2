@@ -1,25 +1,22 @@
 [build-system]
-requires = ["setuptools>=65.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "rdfind2"
-version = "0.0.6"
+version = "0.0.7"
 authors = [
-    { name = "trim21", email = "trim21.me@gmail.com" },
+    "trim21 trim21.me@gmail.com",
 ]
 description = "Find duplicated files very fast"
 readme = "readme.md"
-requires-python = ">=3.9,<4"
-license = { text = "MIT" }
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-]
-dependencies = [
-    "click>=8,<9",
-    'tqdm>=4.65.0,<5',
-]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+click= "^8"
+tqdm= "^4.65.0"
 
 [project.scripts]
 rdfind2 = "rdfind2:rdfind2"

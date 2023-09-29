@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import contextlib
 import dataclasses
 import hashlib
@@ -7,8 +5,9 @@ import io
 import os
 import sys
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from pathlib import Path
+from typing import BinaryIO
 
 import click
 from tqdm import tqdm
@@ -16,8 +15,9 @@ from tqdm import tqdm
 
 PROGRESS_SIZE = 128 * 1024 * 1024  # 512M
 CHUNK_SIZE = 16 * 1024  # 16k
-PARTIAL_SIZE = 16  # head/tail size
-SMALL_FILE_THRESHOLD = 256 * 1024 * 1024  # 256 mb
+PARTIAL_SIZE = 32  # head/tail size
+SMALL_FILE_THRESHOLD = 16 * 1024 * 1024  # 16 mb
+UNSAFE_STEP = 8 * 1024 * 1024  # 4 MiB
 
 
 @dataclasses.dataclass
@@ -27,7 +27,7 @@ class Entry:
     idev: int
     inode: int
 
-    head_middle_and_tail: tuple[bytes, bytes, bytes] = None
+    head_middle_and_tail: tuple[bytes, bytes, bytes] | None = None
 
     @property
     def head(self):
@@ -52,7 +52,6 @@ class Entry:
 
     def unsafe_b2sum(self, factory: int) -> str:
         h = hashlib.blake2b()
-        step = 16 * 1024 * 1024
 
         with (
             self.path.open("rb") as f,
@@ -67,10 +66,10 @@ class Entry:
                 leave=False,
             ) as bar,
         ):
-            for i in range(0, self.size, step * factory):
+            for i in range(0, self.size, UNSAFE_STEP * factory):
                 f.seek(i, io.SEEK_SET)
-                h.update(f.read(step))
-                bar.update(step * factory)
+                h.update(f.read(UNSAFE_STEP))
+                bar.update(UNSAFE_STEP * factory)
 
         return h.hexdigest()
 
@@ -78,7 +77,7 @@ class Entry:
         h = hashlib.blake2b()
 
         with self.open() as f:
-            if sys.platform == "linux":
+            if sys.platform != "win32":
                 os.posix_fadvise(f.fileno(), 0, self.size, os.POSIX_FADV_SEQUENTIAL)
             while data := f.read(CHUNK_SIZE):
                 h.update(data)
@@ -86,7 +85,7 @@ class Entry:
         return h.hexdigest()
 
     @contextlib.contextmanager
-    def open(self) -> io.BytesIO:
+    def open(self) -> Generator[BinaryIO, None, None]:
         if self.size > PROGRESS_SIZE:
             with self.path.open("rb") as f, tqdm.wrapattr(
                 f,
@@ -106,7 +105,7 @@ class Entry:
             yield f
 
     @property
-    def check_key(self) -> tuple:
+    def check_key(self) -> tuple[int, bytes, bytes, bytes]:
         return self.size, self.head, self.middle, self.tail
 
     @staticmethod
@@ -147,23 +146,24 @@ class Entry:
     is_flag=False,
     flag_value=4,
     type=click.IntRange(min=1),
-    help="unsafe partial fast checksum, check only 1/N content of this file. If pass --unsafe=1, it will works like safe hash",
+    help=(
+        "unsafe partial fast checksum, "
+        "check only 1/N content of this file. "
+        "If pass --unsafe=1, it will works like safe hash"
+    ),
 )
-@click.option(
-    "-v",
-    "--verbose",
-    count=True,
-    help="increase output level",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-)
+@click.option("--ext", multiple=True, default=())
+@click.option("--ignore-ext", multiple=True, default=())
+@click.option("-v", "--verbose", count=True, help="increase output level")
+@click.option("--ignore-inode", "ignore_inode", is_flag=True, default=False)
+@click.option("--dry-run", is_flag=True, default=False)
 def rdfind2(
     location: tuple[str],
     threshold: int,
     unsafe: int,
+    ext: tuple[str, ...] = (),
+    ignore_ext: tuple[str, ...] = (),
+    ignore_inode: bool = False,
     verbose: int = 0,
     hardlink=False,
     delete=False,
@@ -180,14 +180,22 @@ def rdfind2(
             click.secho("can't use '--delete-from' without '--delete'", fg="red", err=True)
             sys.exit(1)
 
-    click.secho("dry run enabled")
+    if dry_run:
+        click.secho("dry run enabled")
 
-    group_by_size = dedupe_by_size(location)
+    ext = tuple(x if x.startswith(".") else f".{x}" for x in ext)
+    ignore_ext = tuple(x if x.startswith(".") else f".{x}" for x in ignore_ext)
+
+    if verbose >= 2:
+        print(f"{ext=!r}")
+        print(f"{ignore_ext=!r}")
+
+    group_by_size = dedupe_by_size(location, ext=ext, ignore_ext=ignore_ext)
 
     if threshold:
         group_by_size = {key: value for key, value in group_by_size.items() if key >= threshold}
 
-    groups: dict[tuple, list[Entry]] = dedupe_by_head_tail(group_by_size)
+    groups = dedupe_by_head_tail(group_by_size)
 
     entry_groups: list[list[Entry]] = []
 
@@ -199,7 +207,9 @@ def rdfind2(
 
     click.secho("check file hashed", fg="cyan")
     for entry_group in tqdm(entry_groups, ascii=True, position=0):
-        entry_grouped = compare_groups(entry_group, unsafe=unsafe, verbose=verbose)
+        entry_grouped = compare_groups(
+            entry_group, unsafe=unsafe, verbose=verbose, ignore_inode=ignore_inode
+        )
         for g in entry_grouped:
             if len(g) == 1:
                 continue
@@ -232,12 +242,12 @@ def rdfind2(
 
             elif delete:
                 if delete_from:
-                    keep = [x for x in g if not x.path.is_relative_to(delete_from)]
-                    if keep:
+                    to_keep = [x for x in g if not x.path.is_relative_to(delete_from)]
+                    if to_keep:
                         remove = [x for x in g if x.path.is_relative_to(delete_from)]
                     else:
                         remove = g[1:]
-                    for f in keep:
+                    for f in to_keep:
                         tqdm.write(click.style(f"keep file {f.path}", fg="green"))
                 else:
                     keep = g.pop(0)
@@ -258,7 +268,11 @@ def rdfind2(
         print("deleted file size:", format_size(Stat.deleted))
 
 
-def dedupe_by_size(locations: Iterable[str]) -> dict[int, list[Entry]]:
+def dedupe_by_size(
+    locations: Iterable[str],
+    ext: tuple[str, ...] = (),
+    ignore_ext: tuple[str, ...] = (),
+) -> dict[int, list[Entry]]:
     group_by_size: dict[int, list[Entry]] = defaultdict(list)
 
     with tqdm(desc="get all files", ascii=True) as bar:
@@ -270,6 +284,10 @@ def dedupe_by_size(locations: Iterable[str]) -> dict[int, list[Entry]]:
                     p = t.joinpath(file)
                     if p.is_symlink():
                         continue
+                    if ext and p.suffix not in ext:
+                        continue
+                    if ignore_ext and p.suffix in ignore_ext:
+                        continue
                     stat = p.stat()
                     size = stat.st_size
                     group_by_size[size].append(
@@ -280,9 +298,9 @@ def dedupe_by_size(locations: Iterable[str]) -> dict[int, list[Entry]]:
 
 
 def dedupe_by_head_tail(
-    group_by_size: dict[tuple[int], list[Entry]]
-) -> dict[tuple[int, bytes, bytes], list[Entry]]:
-    groups: dict[tuple[int, bytes, bytes], list[Entry]] = defaultdict(list)
+    group_by_size: dict[int, list[Entry]]
+) -> dict[tuple[int, bytes, bytes, bytes], list[Entry]]:
+    groups: dict[tuple[int, bytes, bytes, bytes], list[Entry]] = defaultdict(list)
     total = sum(len(x) for x in group_by_size.values())
 
     with tqdm(
@@ -303,7 +321,27 @@ class Stat:
     deleted = 0
 
 
-def compare_groups(group: list[Entry], unsafe: int, verbose: int) -> list[list[Entry]]:
+def compare_groups_ignore_inode(group: list[Entry], unsafe: int, verbose: int) -> list[list[Entry]]:
+    hash_map: dict[str, list[Entry]] = defaultdict(list)
+    for e in group:
+        Stat.hashed += e.size
+        if verbose:
+            tqdm.write(f"hashing file {e.path!r}")
+        if unsafe > 1 and e.size >= (UNSAFE_STEP * unsafe * 4):
+            # make sure it hash enough blocks
+            checksum = e.unsafe_b2sum(unsafe)
+        else:
+            checksum = e.safe_b2sum()
+        hash_map[checksum].append(e)
+    return list(hash_map.values())
+
+
+def compare_groups(
+    group: list[Entry], unsafe: int, verbose: int, ignore_inode: bool
+) -> list[list[Entry]]:
+    if ignore_inode:
+        return compare_groups_ignore_inode(group, unsafe, verbose)
+
     inode_group: dict[tuple[int, int], list[Entry]] = defaultdict(list)
     for e in group:
         inode_group[(e.idev, e.inode)].append(e)

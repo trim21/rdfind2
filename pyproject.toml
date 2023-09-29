@@ -15,8 +15,8 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.9"
 
-click= "^8"
-tqdm= "^4.65.0"
+click = "^8"
+tqdm = "^4.65.0"
 
 [tool.poetry.scripts]
 rdfind2 = "rdfind2:rdfind2"

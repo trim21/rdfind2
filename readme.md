@@ -26,11 +26,21 @@ pip install rdfind2
 
 ## Usage:
 
-
-```shell
-rdfind2 [--file-size-threshold=268435456] [--make-hardlink --delete] ./dir1 ./dir2 ...directory
+```text
+Usage: rdfind2 [OPTIONS] LOCATION...                                          
+                                                                              
+Options:                                                                      
+  --hardlink               used when you search duplicate files in same device
+  --delete                                                                    
+  --delete-from PATH
+  --min-file-size INTEGER
+  --unsafe INTEGER RANGE   unsafe partial fast checksum, check only 1/N
+                           content of this file. If pass --unsafe=1, it will
+                           works like safe hash  [x>=1]
+  --ext TEXT
+  --ignore-ext TEXT
+  -v, --verbose            increase output level
+  --ignore-inode
+  --dry-run
+  --help                   Show this message and exit.
 ```
-
-(268435456 is 256MB)
-
-You can get full option with `rdfind2 --help`

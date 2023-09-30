@@ -167,7 +167,7 @@ def rdfind2(
     hardlink=False,
     delete=False,
     dry_run: bool = False,
-    delete_from: Path | None = None,
+    delete_from: Optional[Path] = None,
 ):
     if unsafe is None:
         unsafe = 0

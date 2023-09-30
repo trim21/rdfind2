@@ -27,11 +27,11 @@ pip install rdfind2
 ## Usage:
 
 ```text
-Usage: rdfind2 [OPTIONS] LOCATION...                                          
-                                                                              
-Options:                                                                      
+Usage: rdfind2 [OPTIONS] LOCATION...
+
+Options:
   --hardlink               used when you search duplicate files in same device
-  --delete                                                                    
+  --delete
   --delete-from PATH
   --min-file-size INTEGER
   --unsafe INTEGER RANGE   unsafe partial fast checksum, check only 1/N

@@ -394,7 +394,7 @@ def compare_groups(
 
 
 def format_size(n: int):
-    return tqdm.format_sizeof(n, "B", divisor=1024)
+    return tqdm.format_sizeof(n, "iB", divisor=1024)
 
 
 if __name__ == "__main__":

@@ -128,14 +128,28 @@ class Entry:
     "--hardlink",
     is_flag=True,
     default=False,
-    help="used when you search duplicate files in same device",
+    help="make hardlink between duplicate.",
 )
-@click.option("--delete", "delete", is_flag=True, default=False)
+@click.option(
+    "--delete",
+    "delete",
+    is_flag=True,
+    default=False,
+    help="delete duplicated files, keep only one file.",
+)
 @click.option(
     "--delete-from",
     "delete_from",
     type=click.Path(resolve_path=True, path_type=Path),
     required=False,
+    help="when using --delete flags, only delete files in specific directory.",
+)
+@click.option(
+    "--delete-ignore-inode",
+    "ignore_inode",
+    is_flag=True,
+    default=False,
+    help="when using --delete, ignore file's inode attribute. This means rdfind2 will keep only 1 file of already hardlink-ed files.",
 )
 @click.option("--min-file-size", "threshold", default=SMALL_FILE_THRESHOLD, type=int)
 @click.option(
@@ -155,7 +169,6 @@ class Entry:
     "--ignore-ext", multiple=True, default=(), help="exclude files by extensions"
 )
 @click.option("-v", "--verbose", count=True, help="increase output level")
-@click.option("--ignore-inode", "ignore_inode", is_flag=True, default=False)
 @click.option("--dry-run", is_flag=True, default=False)
 def rdfind2(
     location: tuple[str],
@@ -168,7 +181,7 @@ def rdfind2(
     hardlink=False,
     delete=False,
     dry_run: bool = False,
-    delete_from: Path | None = None,
+    delete_from: Optional[Path] = (None,),
 ):
     if unsafe is None:
         unsafe = 0

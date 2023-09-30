@@ -24,6 +24,7 @@ rdfind2 = "rdfind2:rdfind2"
 [tool.ruff]
 target-version = "py39"
 extend-select = ['I']
+ignore = ['E501']
 
 [tool.black]
 target-version = ['py39']

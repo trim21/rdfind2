@@ -30,17 +30,20 @@ pip install rdfind2
 Usage: rdfind2 [OPTIONS] LOCATION...
 
 Options:
-  --hardlink               used when you search duplicate files in same device
-  --delete
-  --delete-from PATH
+  --hardlink               make hardlink between duplicate.
+  --delete                 delete duplicated files, keep only one file.
+  --delete-from PATH       when using --delete flags, only delete files in
+                           specific directory.
+  --delete-ignore-inode    when using --delete, ignore file's inode attribute.
+                           This means rdfind2 will keep only 1 file of already
+                           hardlink-ed files.
   --min-file-size INTEGER
   --unsafe INTEGER RANGE   unsafe partial fast checksum, check only 1/N
                            content of this file. If pass --unsafe=1, it will
                            behave like safe hash  [x>=1]
-  --ext TEXT
-  --ignore-ext TEXT
+  --ext TEXT               included files by extensions
+  --ignore-ext TEXT        exclude files by extensions
   -v, --verbose            increase output level
-  --ignore-inode
   --dry-run
   --help                   Show this message and exit.
 ```

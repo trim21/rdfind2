@@ -1,0 +1,37 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+      - uses: Trim21/setup-poetry@dist/v1
+
+      - run: poetry publish --build
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Generate Changelog
+        id: changelog
+        uses: requarks/changelog-action@v1.9.0
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.ref_name }}
+          writeToFile: false
+          restrictToTypes: feat,fix,revert
+
+      - name: Upload Github Release
+        run: gh release create "${GITHUB_REF}" --notes "${CHANGELOG}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGELOG: "${{ steps.changelog.outputs.changes }}"

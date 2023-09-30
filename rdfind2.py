@@ -25,7 +25,6 @@ class Entry:
     size: int
     idev: int
     inode: int
-
     head_middle_and_tail: Optional[tuple[bytes, bytes, bytes]] = None
 
     @property
@@ -151,8 +150,10 @@ class Entry:
         "If pass --unsafe=1, it will behave like safe hash"
     ),
 )
-@click.option("--ext", multiple=True, default=())
-@click.option("--ignore-ext", multiple=True, default=())
+@click.option("--ext", multiple=True, default=(), help="included files by extensions")
+@click.option(
+    "--ignore-ext", multiple=True, default=(), help="exclude files by extensions"
+)
 @click.option("-v", "--verbose", count=True, help="increase output level")
 @click.option("--ignore-inode", "ignore_inode", is_flag=True, default=False)
 @click.option("--dry-run", is_flag=True, default=False)
@@ -167,7 +168,7 @@ def rdfind2(
     hardlink=False,
     delete=False,
     dry_run: bool = False,
-    delete_from: Optional[Path] = None,
+    delete_from: Path | None = None,
 ):
     if unsafe is None:
         unsafe = 0

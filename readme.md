@@ -36,7 +36,7 @@ Options:
   --min-file-size INTEGER
   --unsafe INTEGER RANGE   unsafe partial fast checksum, check only 1/N
                            content of this file. If pass --unsafe=1, it will
-                           works like safe hash  [x>=1]
+                           behave like safe hash  [x>=1]
   --ext TEXT
   --ignore-ext TEXT
   -v, --verbose            increase output level

@@ -148,7 +148,7 @@ class Entry:
     help=(
         "unsafe partial fast checksum, "
         "check only 1/N content of this file. "
-        "If pass --unsafe=1, it will works like safe hash"
+        "If pass --unsafe=1, it will behave like safe hash"
     ),
 )
 @click.option("--ext", multiple=True, default=())

@@ -7,11 +7,10 @@ import sys
 from collections import defaultdict
 from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 import click
 from tqdm import tqdm
-
 
 PROGRESS_SIZE = 128 * 1024 * 1024  # 512M
 CHUNK_SIZE = 16 * 1024  # 16k
@@ -27,7 +26,7 @@ class Entry:
     idev: int
     inode: int
 
-    head_middle_and_tail: tuple[bytes, bytes, bytes] | None = None
+    head_middle_and_tail: Optional[tuple[bytes, bytes, bytes]] = None
 
     @property
     def head(self):
@@ -177,7 +176,9 @@ def rdfind2(
         sys.exit(1)
     if delete_from is not None:
         if not delete:
-            click.secho("can't use '--delete-from' without '--delete'", fg="red", err=True)
+            click.secho(
+                "can't use '--delete-from' without '--delete'", fg="red", err=True
+            )
             sys.exit(1)
 
     if dry_run:
@@ -193,7 +194,9 @@ def rdfind2(
     group_by_size = dedupe_by_size(location, ext=ext, ignore_ext=ignore_ext)
 
     if threshold:
-        group_by_size = {key: value for key, value in group_by_size.items() if key >= threshold}
+        group_by_size = {
+            key: value for key, value in group_by_size.items() if key >= threshold
+        }
 
     groups = dedupe_by_head_tail(group_by_size)
 
@@ -231,11 +234,17 @@ def rdfind2(
                     if link_src.inode == file.inode:
                         continue
                     if file.path.name.endswith(".rdfind2.old"):
-                        tqdm.write(click.style(f"find internal temp file {file.path!s}", fg="red"))
+                        tqdm.write(
+                            click.style(
+                                f"find internal temp file {file.path!s}", fg="red"
+                            )
+                        )
                         continue
                     if dry_run:
                         continue
-                    temp_file_path = Path(file.path.with_name(file.path.name + ".rdfind2.old"))
+                    temp_file_path = Path(
+                        file.path.with_name(file.path.name + ".rdfind2.old")
+                    )
                     file.path.rename(temp_file_path)
                     os.link(src=link_src.path, dst=file.path)
                     temp_file_path.unlink()
@@ -321,7 +330,9 @@ class Stat:
     deleted = 0
 
 
-def compare_groups_ignore_inode(group: list[Entry], unsafe: int, verbose: int) -> list[list[Entry]]:
+def compare_groups_ignore_inode(
+    group: list[Entry], unsafe: int, verbose: int
+) -> list[list[Entry]]:
     hash_map: dict[str, list[Entry]] = defaultdict(list)
     for e in group:
         Stat.hashed += e.size

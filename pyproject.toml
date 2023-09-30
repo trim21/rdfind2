@@ -20,3 +20,10 @@ tqdm = "^4.65.0"
 
 [tool.poetry.scripts]
 rdfind2 = "rdfind2:rdfind2"
+
+[tool.ruff]
+target-version = "py39"
+extend-select = ['I']
+
+[tool.black]
+target-version = ['py39']

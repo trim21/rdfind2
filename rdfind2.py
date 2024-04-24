@@ -85,18 +85,21 @@ class Entry:
     @contextlib.contextmanager
     def open(self) -> Generator[BinaryIO, None, None]:
         if self.size > PROGRESS_SIZE:
-            with self.path.open("rb") as f, tqdm.wrapattr(
-                f,
-                "read",
-                total=self.size,
-                ascii=True,
-                leave=False,
-                mininterval=1,
-                position=1,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as reader:
+            with (
+                self.path.open("rb") as f,
+                tqdm.wrapattr(
+                    f,
+                    "read",
+                    total=self.size,
+                    ascii=True,
+                    leave=False,
+                    mininterval=1,
+                    position=1,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                ) as reader,
+            ):
                 yield reader
             return
         with self.path.open("rb") as f:

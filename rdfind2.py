@@ -324,7 +324,7 @@ def dedupe_by_size(
 
 
 def dedupe_by_head_tail(
-    group_by_size: dict[int, list[Entry]]
+    group_by_size: dict[int, list[Entry]],
 ) -> dict[tuple[int, bytes, bytes, bytes], list[Entry]]:
     groups: dict[tuple[int, bytes, bytes, bytes], list[Entry]] = defaultdict(list)
     total = sum(len(x) for x in group_by_size.values())

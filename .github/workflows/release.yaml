@@ -18,11 +18,13 @@ jobs:
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
-      - uses: Trim21/setup-poetry@dist/v1
 
-      - run: poetry publish --build
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+      - run: pipx run build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          attestations: false
 
       - name: Generate Changelog
         id: changelog

@@ -5,19 +5,17 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "rdfind2"
 version = "0.1.5"
-authors = [
-    {name="trim21"},
-]
+authors = [{ name = "trim21" }]
 description = "Find duplicated files very fast"
 readme = "readme.md"
 license = "MIT"
-
 requires-python = '~=3.9'
+dependencies = ["click~=8.0", "tqdm~=4.67.1"]
 
-dependencies=[
-"click~=8.0",
-"tqdm~=4.67.1",
-]
+[project.urls]
+Homepage = "https://github.com/trim21/rdfind2"
+Repository = "https://github.com/trim21/rdfind2"
+Issues = "https://github.com/trim21/rdfind2/issues"
 
 [project.scripts]
 rdfind2 = "rdfind2:rdfind2"

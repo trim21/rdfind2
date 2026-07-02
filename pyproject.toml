@@ -10,7 +10,7 @@ description = "Find duplicated files very fast"
 readme = "readme.md"
 license = "MIT"
 requires-python = '~=3.9'
-dependencies = ["click~=8.0", "tqdm~=4.67.1"]
+dependencies = ["click~=8.0", "tqdm~=4.68.3"]
 
 [project.urls]
 Homepage = "https://github.com/trim21/rdfind2"

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import dataclasses
 import hashlib
@@ -7,7 +9,7 @@ import sys
 from collections import defaultdict
 from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 import click
 from tqdm import tqdm
@@ -25,7 +27,7 @@ class Entry:
     size: int
     idev: int
     inode: int
-    head_middle_and_tail: Optional[tuple[bytes, bytes, bytes]] = None
+    head_middle_and_tail: tuple[bytes, bytes, bytes] | None = None
 
     @property
     def head(self):
@@ -83,7 +85,7 @@ class Entry:
         return h.hexdigest()
 
     @contextlib.contextmanager
-    def open(self) -> Generator[BinaryIO, None, None]:
+    def open(self) -> Generator[BinaryIO]:
         if self.size > PROGRESS_SIZE:
             with (
                 self.path.open("rb") as f,
@@ -184,19 +186,16 @@ def rdfind2(
     hardlink=False,
     delete=False,
     dry_run: bool = False,
-    delete_from: Optional[Path] = (None,),
+    delete_from: Path | None = (None,),
 ):
     if unsafe is None:
         unsafe = 0
     if hardlink and delete:
         click.secho("can't use '--make-hardlink' with '--delete'", fg="green", err=True)
         sys.exit(1)
-    if delete_from is not None:
-        if not delete:
-            click.secho(
-                "can't use '--delete-from' without '--delete'", fg="red", err=True
-            )
-            sys.exit(1)
+    if delete_from is not None and not delete:
+        click.secho("can't use '--delete-from' without '--delete'", fg="red", err=True)
+        sys.exit(1)
 
     if dry_run:
         click.secho("dry run enabled")

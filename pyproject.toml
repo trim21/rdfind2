@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "rdfind2"
-version = "0.1.5"
+version = "0.1.6"
 authors = [{ name = "trim21" }]
 description = "Find duplicated files very fast"
 readme = "readme.md"
